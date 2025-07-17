@@ -103,6 +103,11 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.dromara</groupId>
+            <artifactId>ruoyi-crm</artifactId>
+            <version>${revision}</version>
+        </dependency>
 
         <!-- skywalking 整合 logback -->
 <!--        <dependency>-->

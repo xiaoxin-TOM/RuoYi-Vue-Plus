@@ -3,26 +3,28 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>ruoyi-vue-plus</artifactId>
+        <artifactId>ruoyi-modules</artifactId>
         <groupId>org.dromara</groupId>
         <version>${revision}</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <modules>
-        <module>ruoyi-demo</module>
-        <module>ruoyi-generator</module>
-        <module>ruoyi-job</module>
-        <module>ruoyi-system</module>
-        <module>ruoyi-workflow</module>
-        <module>ruoyi-crm</module>
-    </modules>
-
-    <artifactId>ruoyi-modules</artifactId>
-    <packaging>pom</packaging>
+    <artifactId>ruoyi-crm</artifactId>
 
     <description>
-        ruoyi-modules 业务模块
+        crm模块
     </description>
 
+    <dependencies>
+<!-- 基础依赖 -->
+<dependency>
+    <groupId>org.dromara</groupId>
+    <artifactId>ruoyi-common-core</artifactId>
+</dependency>
+
+<dependency>
+    <groupId>org.dromara</groupId>
+    <artifactId>ruoyi-common-web</artifactId>
+</dependency>
+    </dependencies>
 </project>
