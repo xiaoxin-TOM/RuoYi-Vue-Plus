@@ -1,8 +1,8 @@
 package org.dromara.crm.mapper;
 
-import org.dromara.system.domain.EmailMailMessage;
-import org.dromara.system.domain.vo.EmailMailMessageVo;
 import org.dromara.common.mybatis.core.mapper.BaseMapperPlus;
+import org.dromara.crm.domain.EmailMailMessage;
+import org.dromara.crm.domain.vo.EmailMailMessageVo;
 
 /**
  * 邮件，支持多租户（模块：email）Mapper接口

@@ -1,9 +1,11 @@
 package org.dromara.crm.service;
 
-import org.dromara.system.domain.vo.EmailMailMessageVo;
-import org.dromara.system.domain.bo.EmailMailMessageBo;
+
 import org.dromara.common.mybatis.core.page.TableDataInfo;
 import org.dromara.common.mybatis.core.page.PageQuery;
+import org.dromara.crm.domain.bo.EmailMailMessageBo;
+import org.dromara.crm.domain.vo.EmailMailMessageVo;
+import org.dromara.system.domain.vo.SysUserVo;
 
 import java.util.Collection;
 import java.util.List;
@@ -65,4 +67,11 @@ public interface IEmailMailMessageService {
      * @return 是否删除成功
      */
     Boolean deleteWithValidByIds(Collection<Long> ids, Boolean isValid);
+
+    /**
+     * 同步用户邮件到本地数据库
+     *
+     * @param user 用户信息
+     */
+    void syncMailMessage(SysUserVo user);
 }

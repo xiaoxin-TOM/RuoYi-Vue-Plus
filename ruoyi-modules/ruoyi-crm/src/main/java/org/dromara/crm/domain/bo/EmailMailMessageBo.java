@@ -1,6 +1,5 @@
 package org.dromara.crm.domain.bo;
 
-import org.dromara.system.domain.EmailMailMessage;
 import org.dromara.common.mybatis.core.domain.BaseEntity;
 import org.dromara.common.core.validate.AddGroup;
 import org.dromara.common.core.validate.EditGroup;
@@ -9,7 +8,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import jakarta.validation.constraints.*;
 import java.util.Date;
-import com.fasterxml.jackson.annotation.JsonFormat;
+
+import org.dromara.crm.domain.EmailMailMessage;
 
 /**
  * 邮件，支持多租户（模块：email）业务对象 email_mail_message

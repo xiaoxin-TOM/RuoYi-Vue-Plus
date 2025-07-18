@@ -1,5 +1,8 @@
 package org.dromara.crm.service.impl;
 
+import org.dromara.common.core.exception.ServiceException;
+import jakarta.mail.*;
+import jakarta.mail.internet.InternetAddress;
 import org.dromara.common.core.utils.MapstructUtils;
 import org.dromara.common.core.utils.StringUtils;
 import org.dromara.common.mybatis.core.page.TableDataInfo;
@@ -9,16 +12,15 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.dromara.system.domain.vo.SysUserVo;
 import org.springframework.stereotype.Service;
-import org.dromara.system.domain.bo.EmailMailMessageBo;
-import org.dromara.system.domain.vo.EmailMailMessageVo;
-import org.dromara.system.domain.EmailMailMessage;
-import org.dromara.system.mapper.EmailMailMessageMapper;
-import org.dromara.system.service.IEmailMailMessageService;
+import org.dromara.crm.domain.bo.EmailMailMessageBo;
+import org.dromara.crm.domain.vo.EmailMailMessageVo;
+import org.dromara.crm.domain.EmailMailMessage;
+import org.dromara.crm.mapper.EmailMailMessageMapper;
+import org.dromara.crm.service.IEmailMailMessageService;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Collection;
+import java.util.*;
 
 /**
  * 邮件，支持多租户（模块：email）Service业务层处理
@@ -144,5 +146,108 @@ public class EmailMailMessageServiceImpl implements IEmailMailMessageService {
             //TODO 做一些业务上的校验,判断是否需要校验
         }
         return baseMapper.deleteByIds(ids) > 0;
+    }
+
+    @Override
+    public void syncMailMessage(SysUserVo user) {
+        try {
+            // 1. 创建邮件会话
+            Properties props = new Properties();
+            props.setProperty("mail.store.protocol", "imap");
+            props.setProperty("mail.imap.host", "imap.qq.com"); // 根据实际邮箱服务器配置
+            props.setProperty("mail.imap.port", "993");
+            props.setProperty("mail.imap.ssl.enable", "true");
+
+            Session session = Session.getInstance(props);
+            Store store = session.getStore("imap");
+            store.connect(user.getEmail(), user.getEmailPassword());
+
+            // 2. 获取收件箱
+            Folder folder = store.getFolder("INBOX");
+            folder.open(Folder.READ_ONLY);
+
+            // 3. 获取所有邮件
+            Message[] messages = folder.getMessages();
+
+            for (Message message : messages) {
+                // 4. 检查邮件是否已存在
+                String mailId = getMessageId(message);
+                LambdaQueryWrapper<EmailMailMessage> wrapper = Wrappers.lambdaQuery();
+                wrapper.eq(EmailMailMessage::getMailId, mailId);
+                if (baseMapper.exists(wrapper)) {
+                    continue;
+                }
+
+                // 5. 构建邮件对象
+                EmailMailMessageBo bo = new EmailMailMessageBo();
+                bo.setMailId(mailId);
+                bo.setFolder("INBOX");
+                bo.setFromAddress(InternetAddress.toString(message.getFrom()));
+                bo.setToAddresses(InternetAddress.toString(message.getRecipients(Message.RecipientType.TO)));
+                bo.setCcAddresses(InternetAddress.toString(message.getRecipients(Message.RecipientType.CC)));
+                bo.setBccAddresses(InternetAddress.toString(message.getRecipients(Message.RecipientType.BCC)));
+                bo.setSubject(message.getSubject());
+                bo.setSentDate(message.getSentDate());
+                bo.setReceivedDate(message.getReceivedDate());
+                bo.setIsRead(message.getFlags().contains(Flags.Flag.SEEN) ? 1L : 0L);
+                // 6. 处理邮件内容
+                Object content = message.getContent();
+                if (content instanceof Multipart) {
+                    Multipart multipart = (Multipart) content;
+                    handleMultipart(multipart, bo);
+                } else {
+                    bo.setBodyText(content.toString());
+                }
+
+                // 7. 保存到数据库
+                insertByBo(bo);
+            }
+
+            // 8. 关闭连接
+            folder.close(false);
+            store.close();
+
+        } catch (Exception e) {
+            log.error("同步邮件失败", e);
+            throw new ServiceException("同步邮件失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取邮件ID
+     */
+    private String getMessageId(Message message) throws MessagingException {
+        String[] headers = message.getHeader("Message-ID");
+        return headers != null && headers.length > 0 ? headers[0] : String.valueOf(message.getMessageNumber());
+    }
+
+    /**
+     * 处理多部分邮件内容
+     */
+    private void handleMultipart(Multipart multipart, EmailMailMessageBo bo) throws Exception {
+        int count = multipart.getCount();
+        StringBuilder textContent = new StringBuilder();
+        StringBuilder htmlContent = new StringBuilder();
+        List<String> attachments = new ArrayList<>();
+
+        for (int i = 0; i < count; i++) {
+            BodyPart bodyPart = multipart.getBodyPart(i);
+            String disposition = bodyPart.getDisposition();
+
+            if (disposition != null && (disposition.equalsIgnoreCase(Part.ATTACHMENT) ||
+                disposition.equalsIgnoreCase(Part.INLINE))) {
+                // 处理附件
+                attachments.add(bodyPart.getFileName());
+            } else if (bodyPart.getContentType().toLowerCase().startsWith("text/plain")) {
+                textContent.append(bodyPart.getContent().toString());
+            } else if (bodyPart.getContentType().toLowerCase().startsWith("text/html")) {
+                htmlContent.append(bodyPart.getContent().toString());
+            }
+        }
+
+        bo.setBodyText(textContent.toString());
+        bo.setBodyHtml(htmlContent.toString());
+        bo.setHasAttachments(!attachments.isEmpty() ? 1L : 0L);
+        bo.setAttachments(String.join(",", attachments));        bo.setAttachments(String.join(",", attachments));
     }
 }

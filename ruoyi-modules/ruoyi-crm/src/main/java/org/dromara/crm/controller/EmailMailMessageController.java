@@ -6,6 +6,12 @@ import lombok.RequiredArgsConstructor;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.*;
 import cn.dev33.satoken.annotation.SaCheckPermission;
+import org.dromara.common.satoken.utils.LoginHelper;
+import org.dromara.crm.domain.bo.EmailMailMessageBo;
+import org.dromara.crm.domain.vo.EmailMailMessageVo;
+import org.dromara.crm.service.IEmailMailMessageService;
+import org.dromara.system.domain.vo.SysUserVo;
+import org.dromara.system.service.ISysUserService;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.validation.annotation.Validated;
 import org.dromara.common.idempotent.annotation.RepeatSubmit;
@@ -17,9 +23,6 @@ import org.dromara.common.core.validate.AddGroup;
 import org.dromara.common.core.validate.EditGroup;
 import org.dromara.common.log.enums.BusinessType;
 import org.dromara.common.excel.utils.ExcelUtil;
-import org.dromara.system.domain.vo.EmailMailMessageVo;
-import org.dromara.system.domain.bo.EmailMailMessageBo;
-import org.dromara.system.service.IEmailMailMessageService;
 import org.dromara.common.mybatis.core.page.TableDataInfo;
 
 /**
@@ -31,15 +34,16 @@ import org.dromara.common.mybatis.core.page.TableDataInfo;
 @Validated
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/system/mailMessage")
+@RequestMapping("/mail/mailMessage")
 public class EmailMailMessageController extends BaseController {
 
     private final IEmailMailMessageService emailMailMessageService;
+    private final ISysUserService sysUserService;
 
     /**
      * 查询邮件，支持多租户（模块：email）列表
      */
-    @SaCheckPermission("system:mailMessage:list")
+    @SaCheckPermission("mail:mailMessage:list")
     @GetMapping("/list")
     public TableDataInfo<EmailMailMessageVo> list(EmailMailMessageBo bo, PageQuery pageQuery) {
         return emailMailMessageService.queryPageList(bo, pageQuery);
@@ -48,7 +52,7 @@ public class EmailMailMessageController extends BaseController {
     /**
      * 导出邮件，支持多租户（模块：email）列表
      */
-    @SaCheckPermission("system:mailMessage:export")
+    @SaCheckPermission("mail:mailMessage:export")
     @Log(title = "邮件，支持多租户（模块：email）", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(EmailMailMessageBo bo, HttpServletResponse response) {
@@ -61,7 +65,7 @@ public class EmailMailMessageController extends BaseController {
      *
      * @param id 主键
      */
-    @SaCheckPermission("system:mailMessage:query")
+    @SaCheckPermission("mail:mailMessage:query")
     @GetMapping("/{id}")
     public R<EmailMailMessageVo> getInfo(@NotNull(message = "主键不能为空")
                                      @PathVariable Long id) {
@@ -71,7 +75,7 @@ public class EmailMailMessageController extends BaseController {
     /**
      * 新增邮件，支持多租户（模块：email）
      */
-    @SaCheckPermission("system:mailMessage:add")
+    @SaCheckPermission("mail:mailMessage:add")
     @Log(title = "邮件，支持多租户（模块：email）", businessType = BusinessType.INSERT)
     @RepeatSubmit()
     @PostMapping()
@@ -82,7 +86,7 @@ public class EmailMailMessageController extends BaseController {
     /**
      * 修改邮件，支持多租户（模块：email）
      */
-    @SaCheckPermission("system:mailMessage:edit")
+    @SaCheckPermission("mail:mailMessage:edit")
     @Log(title = "邮件，支持多租户（模块：email）", businessType = BusinessType.UPDATE)
     @RepeatSubmit()
     @PutMapping()
@@ -95,11 +99,48 @@ public class EmailMailMessageController extends BaseController {
      *
      * @param ids 主键串
      */
-    @SaCheckPermission("system:mailMessage:remove")
+    @SaCheckPermission("mail:mailMessage:remove")
     @Log(title = "邮件，支持多租户（模块：email）", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public R<Void> remove(@NotEmpty(message = "主键不能为空")
                           @PathVariable Long[] ids) {
         return toAjax(emailMailMessageService.deleteWithValidByIds(List.of(ids), true));
+    }
+
+    /**
+     * 查询用户邮箱
+     */
+    @SaCheckPermission("mail:mailMessage:accountInfo")
+    @GetMapping("/accountInfo")
+    public R<SysUserVo> accountInfo() {
+        Long userId = LoginHelper.getUserId();
+        SysUserVo user = sysUserService.selectUserById(userId);
+        return R.ok(user);
+    }
+
+    /**
+     * 同步邮件到本地数据库
+     */
+    @SaCheckPermission("mail:mailMessage:sync")
+    @Log(title = "同步邮件", businessType = BusinessType.OTHER)
+    @RepeatSubmit(interval = 60000) // 设置1分钟内不能重复提交
+    @PostMapping("/sync")
+    public R<Void> syncMail() {
+        // 获取当前登录用户
+        Long userId = LoginHelper.getUserId();
+        SysUserVo user = sysUserService.selectUserById(userId);
+
+        // 检查用户邮箱配置
+        if (user.getEmail() == null || user.getEmailPassword() == null) {
+            return R.fail("请先配置邮箱账号和密码");
+        }
+
+        try {
+            // 调用service层的同步方法
+            emailMailMessageService.syncMailMessage(user);
+            return R.ok();
+        } catch (Exception e) {
+            return R.fail("同步邮件失败：" + e.getMessage());
+        }
     }
 }

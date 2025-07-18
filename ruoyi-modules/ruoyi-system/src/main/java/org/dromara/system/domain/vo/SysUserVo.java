@@ -65,6 +65,13 @@ public class SysUserVo implements Serializable {
     private String email;
 
     /**
+     * 用户邮箱密码
+     */
+    @JsonIgnore
+    @JsonProperty
+    private String emailPassword;
+
+    /**
      * 手机号码
      */
     @Sensitive(strategy = SensitiveStrategy.PHONE, perms = "system:user:edit")

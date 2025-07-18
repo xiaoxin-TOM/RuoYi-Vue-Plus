@@ -2,13 +2,13 @@ package org.dromara.crm.domain.vo;
 
 import java.util.Date;
 import com.fasterxml.jackson.annotation.JsonFormat;
-import org.dromara.system.domain.EmailMailMessage;
 import cn.idev.excel.annotation.ExcelIgnoreUnannotated;
 import cn.idev.excel.annotation.ExcelProperty;
 import org.dromara.common.excel.annotation.ExcelDictFormat;
 import org.dromara.common.excel.convert.ExcelDictConvert;
 import io.github.linpeilie.annotations.AutoMapper;
 import lombok.Data;
+import org.dromara.crm.domain.EmailMailMessage;
 
 import java.io.Serial;
 import java.io.Serializable;

@@ -53,6 +53,11 @@ public class SysUser extends TenantEntity {
     private String email;
 
     /**
+     * 用户邮箱密码
+     */
+    private String emailPassword;
+
+    /**
      * 手机号码
      */
     private String phonenumber;
