@@ -23,7 +23,7 @@ import org.dromara.crm.service.IEmailMailMessageService;
 import java.util.*;
 
 /**
- * 邮件，支持多租户（模块：email）Service业务层处理
+ * 邮件，支持多租户（模块：email）Service业务层处理 测试
  *
  * @author Lion Li
  * @date 2025-07-17
