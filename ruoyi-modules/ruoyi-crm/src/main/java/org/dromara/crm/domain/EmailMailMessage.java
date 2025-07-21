@@ -104,15 +104,5 @@ public class EmailMailMessage extends TenantEntity {
      */
     private String flags;
 
-    /**
-     * 记录创建时间
-     */
-    private Date createdAt;
-
-    /**
-     * 记录更新时间
-     */
-    private Date updatedAt;
-
 
 }

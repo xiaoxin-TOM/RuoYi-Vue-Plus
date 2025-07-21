@@ -1,5 +1,6 @@
 package org.dromara.crm.service.impl;
 
+import jakarta.mail.internet.MimeUtility;
 import org.dromara.common.core.exception.ServiceException;
 import jakarta.mail.*;
 import jakarta.mail.internet.InternetAddress;
@@ -75,7 +76,7 @@ public class EmailMailMessageServiceImpl implements IEmailMailMessageService {
     private LambdaQueryWrapper<EmailMailMessage> buildQueryWrapper(EmailMailMessageBo bo) {
         Map<String, Object> params = bo.getParams();
         LambdaQueryWrapper<EmailMailMessage> lqw = Wrappers.lambdaQuery();
-        lqw.orderByAsc(EmailMailMessage::getId);
+        lqw.orderByDesc(EmailMailMessage::getReceivedDate);
         lqw.eq(StringUtils.isNotBlank(bo.getMailId()), EmailMailMessage::getMailId, bo.getMailId());
         lqw.eq(StringUtils.isNotBlank(bo.getFolder()), EmailMailMessage::getFolder, bo.getFolder());
         lqw.eq(StringUtils.isNotBlank(bo.getFromAddress()), EmailMailMessage::getFromAddress, bo.getFromAddress());
@@ -91,8 +92,6 @@ public class EmailMailMessageServiceImpl implements IEmailMailMessageService {
         lqw.eq(bo.getHasAttachments() != null, EmailMailMessage::getHasAttachments, bo.getHasAttachments());
         lqw.eq(StringUtils.isNotBlank(bo.getAttachments()), EmailMailMessage::getAttachments, bo.getAttachments());
         lqw.eq(StringUtils.isNotBlank(bo.getFlags()), EmailMailMessage::getFlags, bo.getFlags());
-        lqw.eq(bo.getCreatedAt() != null, EmailMailMessage::getCreatedAt, bo.getCreatedAt());
-        lqw.eq(bo.getUpdatedAt() != null, EmailMailMessage::getUpdatedAt, bo.getUpdatedAt());
         return lqw;
     }
 
@@ -154,7 +153,7 @@ public class EmailMailMessageServiceImpl implements IEmailMailMessageService {
             // 1. 创建邮件会话
             Properties props = new Properties();
             props.setProperty("mail.store.protocol", "imap");
-            props.setProperty("mail.imap.host", "imap.qq.com"); // 根据实际邮箱服务器配置
+            props.setProperty("mail.imap.host", "imap.exmail.qq.com"); // 根据实际邮箱服务器配置
             props.setProperty("mail.imap.port", "993");
             props.setProperty("mail.imap.ssl.enable", "true");
 
@@ -179,13 +178,30 @@ public class EmailMailMessageServiceImpl implements IEmailMailMessageService {
                 }
 
                 // 5. 构建邮件对象
+                // 5. 构建邮件对象
                 EmailMailMessageBo bo = new EmailMailMessageBo();
                 bo.setMailId(mailId);
                 bo.setFolder("INBOX");
-                bo.setFromAddress(InternetAddress.toString(message.getFrom()));
-                bo.setToAddresses(InternetAddress.toString(message.getRecipients(Message.RecipientType.TO)));
-                bo.setCcAddresses(InternetAddress.toString(message.getRecipients(Message.RecipientType.CC)));
-                bo.setBccAddresses(InternetAddress.toString(message.getRecipients(Message.RecipientType.BCC)));
+
+// 设置发件人地址
+                bo.setFromAddress(decodeEmailAddress(InternetAddress.toString(message.getFrom())));
+
+// 设置收件人地址
+                Address[] toAddrs = message.getRecipients(Message.RecipientType.TO);
+                bo.setToAddresses(toAddrs != null ? decodeEmailAddress(InternetAddress.toString(toAddrs)) : "");
+
+// 设置抄送地址
+                Address[] ccAddrs = message.getRecipients(Message.RecipientType.CC);
+                if (ccAddrs != null) {
+                    bo.setCcAddresses(decodeEmailAddress(InternetAddress.toString(ccAddrs)));
+                }
+
+// 设置密送地址
+                Address[] bccAddrs = message.getRecipients(Message.RecipientType.BCC);
+                if (bccAddrs != null) {
+                    bo.setBccAddresses(decodeEmailAddress(InternetAddress.toString(bccAddrs)));
+                }
+
                 bo.setSubject(message.getSubject());
                 bo.setSentDate(message.getSentDate());
                 bo.setReceivedDate(message.getReceivedDate());
@@ -249,5 +265,26 @@ public class EmailMailMessageServiceImpl implements IEmailMailMessageService {
         bo.setBodyHtml(htmlContent.toString());
         bo.setHasAttachments(!attachments.isEmpty() ? 1L : 0L);
         bo.setAttachments(String.join(",", attachments));        bo.setAttachments(String.join(",", attachments));
+    }
+
+
+    /**
+     * 解码邮件地址
+     */
+    private String decodeEmailAddress(String address) {
+        try {
+            // 处理完整的邮件地址格式 "name <email@domain.com>"
+            if (address.contains("<")) {
+                String[] parts = address.split("<", 2);
+                String name = MimeUtility.decodeText(parts[0].trim());
+                String email = parts[1].substring(0, parts[1].length() - 1).trim();
+                return name + " <" + email + ">";
+            }
+            // 处理纯邮件地址
+            return MimeUtility.decodeText(address);
+        } catch (Exception e) {
+            log.warn("解码邮件地址失败: {}", address, e);
+            return address;
+        }
     }
 }
