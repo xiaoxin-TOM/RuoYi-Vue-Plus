@@ -4,6 +4,8 @@ import java.util.Date;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import cn.idev.excel.annotation.ExcelIgnoreUnannotated;
 import cn.idev.excel.annotation.ExcelProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import org.dromara.common.excel.annotation.ExcelDictFormat;
 import org.dromara.common.excel.convert.ExcelDictConvert;
 import io.github.linpeilie.annotations.AutoMapper;
@@ -35,6 +37,12 @@ public class EmailMailMessageVo implements Serializable {
      */
     @ExcelProperty(value = "主键ID")
     private Long id;
+
+    /**
+     * 主键ID
+     */
+    @ExcelProperty(value = "用户ID")
+    private Long userId;
 
     /**
      * 邮件唯一ID（Message‑ID）

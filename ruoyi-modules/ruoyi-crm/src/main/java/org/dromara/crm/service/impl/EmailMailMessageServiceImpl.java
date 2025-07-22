@@ -86,6 +86,7 @@ public class EmailMailMessageServiceImpl implements IEmailMailMessageService {
         lqw.eq(StringUtils.isNotBlank(bo.getSubject()), EmailMailMessage::getSubject, bo.getSubject());
         lqw.eq(StringUtils.isNotBlank(bo.getBodyText()), EmailMailMessage::getBodyText, bo.getBodyText());
         lqw.eq(StringUtils.isNotBlank(bo.getBodyHtml()), EmailMailMessage::getBodyHtml, bo.getBodyHtml());
+        lqw.eq(bo.getUserId() != null, EmailMailMessage::getUserId, bo.getUserId());
         lqw.eq(bo.getSentDate() != null, EmailMailMessage::getSentDate, bo.getSentDate());
         lqw.eq(bo.getReceivedDate() != null, EmailMailMessage::getReceivedDate, bo.getReceivedDate());
         lqw.eq(bo.getIsRead() != null, EmailMailMessage::getIsRead, bo.getIsRead());
@@ -214,6 +215,8 @@ public class EmailMailMessageServiceImpl implements IEmailMailMessageService {
                 } else {
                     bo.setBodyText(content.toString());
                 }
+                // 6.1 设置用户id
+                bo.setUserId(user.getUserId());
 
                 // 7. 保存到数据库
                 insertByBo(bo);

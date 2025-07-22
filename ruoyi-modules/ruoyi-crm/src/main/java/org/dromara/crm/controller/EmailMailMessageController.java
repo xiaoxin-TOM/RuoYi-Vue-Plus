@@ -46,6 +46,7 @@ public class EmailMailMessageController extends BaseController {
     @SaCheckPermission("mail:mailMessage:list")
     @GetMapping("/list")
     public TableDataInfo<EmailMailMessageVo> list(EmailMailMessageBo bo, PageQuery pageQuery) {
+        bo.setUserId(LoginHelper.getUserId());
         return emailMailMessageService.queryPageList(bo, pageQuery);
     }
 
@@ -142,5 +143,19 @@ public class EmailMailMessageController extends BaseController {
         } catch (Exception e) {
             return R.fail("同步邮件失败：" + e.getMessage());
         }
+    }
+
+    /**
+     * 更新邮件已读状态
+     */
+    @SaCheckPermission("mail:mailMessage:edit")
+    @Log(title = "更新邮件已读状态", businessType = BusinessType.UPDATE)
+    @PutMapping("/read/{id}")
+    public R<Void> updateReadStatus(@NotNull(message = "主键不能为空")
+                                    @PathVariable Long id) {
+        EmailMailMessageBo bo = new EmailMailMessageBo();
+        bo.setId(id);
+        bo.setIsRead(1L);  // 设置为已读
+        return toAjax(emailMailMessageService.updateByBo(bo));
     }
 }

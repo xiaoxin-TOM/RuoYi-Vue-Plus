@@ -30,6 +30,11 @@ public class EmailMailMessage extends TenantEntity {
     private Long id;
 
     /**
+     * 用户ID
+     */
+    private Long userId;
+
+    /**
      * 邮件唯一ID（Message‑ID）
      */
     private String mailId;
